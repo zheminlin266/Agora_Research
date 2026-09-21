@@ -1,17 +1,17 @@
 {
-  "generated_at_utc": "2026-09-14T14:07:52.069673+00:00",
+  "generated_at_utc": "2026-09-21T06:18:58.558061+00:00",
   "vendor": "livekit",
   "source": {
     "registry": "https://registry.npmjs.org",
     "downloads": "https://api.npmjs.org/downloads",
     "weekly_grain": "Monday-start weeks",
-    "latest_download_day": "2026-09-11",
-    "latest_complete_week_start": "2026-08-31",
+    "latest_download_day": "2026-09-19",
+    "latest_complete_week_start": "2026-09-07",
     "caveat": "npm counts include automation, mirrors, caches, and dependency installs."
   },
   "dataset": {
     "csv": "livekit_npm_weekly_downloads.csv",
-    "rows": 295,
+    "rows": 296,
     "columns": [
       "week_start",
       "livekit-client",
@@ -20,7 +20,7 @@
       "@livekit/agents",
       "@livekit/agents-plugin-silero"
     ],
-    "latest_complete_week_start": "2026-08-31"
+    "latest_complete_week_start": "2026-09-07"
   },
   "packages": {
     "livekit-client": {
@@ -50,16 +50,16 @@
     "@livekit/agents": {
       "exists": true,
       "created": "2024-05-21T08:53:35.047Z",
-      "modified": "2026-09-10T21:09:21.709Z",
-      "latest_version": "1.8.1",
+      "modified": "2026-09-15T19:37:34.624Z",
+      "latest_version": "1.9.0",
       "description": "LiveKit Agents - Node.js",
       "error": null
     },
     "@livekit/agents-plugin-silero": {
       "exists": true,
       "created": "2024-11-10T15:13:39.024Z",
-      "modified": "2026-09-10T21:04:26.952Z",
-      "latest_version": "1.8.1",
+      "modified": "2026-09-15T19:32:41.766Z",
+      "latest_version": "1.9.0",
       "description": "Silero voice activity detection LiveKit Node Agents",
       "error": null
     }
