@@ -1,28 +1,28 @@
 {
-  "generated_at_utc": "2026-09-21T06:19:06.348874+00:00",
+  "generated_at_utc": "2026-10-06T14:51:21.122512+00:00",
   "vendor": "tencent",
   "source": {
     "registry": "https://registry.npmjs.org",
     "downloads": "https://api.npmjs.org/downloads",
     "weekly_grain": "Monday-start weeks",
-    "latest_download_day": "2026-09-19",
-    "latest_complete_week_start": "2026-09-07",
+    "latest_download_day": "2026-10-04",
+    "latest_complete_week_start": "2026-09-28",
     "caveat": "npm counts include automation, mirrors, caches, and dependency installs."
   },
   "dataset": {
     "csv": "rtc_competitor_npm_weekly_downloads.csv",
-    "rows": 212,
+    "rows": 214,
     "columns": [
       "week_start",
       "trtc-cloud-js-sdk"
     ],
-    "latest_complete_week_start": "2026-09-07"
+    "latest_complete_week_start": "2026-09-28"
   },
   "packages": {
     "trtc-cloud-js-sdk": {
       "exists": true,
       "created": "2022-09-02T13:54:39.581Z",
-      "modified": "2026-09-16T14:37:26.339Z",
+      "modified": "2026-09-29T15:47:46.489Z",
       "latest_version": "2.14.3",
       "description": "Tencent Cloud RTC SDK for Web And Electron",
       "error": null
