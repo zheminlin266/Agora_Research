@@ -3,10 +3,12 @@ import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 
 import { SitePreferencesProvider } from "@/components/site-preferences";
+import { serializeStructuredData, siteStructuredData, siteUrl } from "@/lib/seo";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Agora Equity Research",
   description: "聚焦实时互动行业需求、供给格局与声网竞争优势的独立研究。",
 };
@@ -26,6 +28,11 @@ export default function RootLayout({
         `}</Script>
         <SitePreferencesProvider>{children}</SitePreferencesProvider>
         <Analytics />
+        <script
+          id="site-structured-data"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeStructuredData(siteStructuredData) }}
+        />
       </body>
     </html>
   );

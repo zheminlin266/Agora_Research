@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { LocalizedMarkdownArticle } from "@/components/localized-markdown-article";
 import { getArticle, type ArticleId } from "@/lib/content-manifest";
+import { getArticleStructuredData, serializeStructuredData } from "@/lib/seo";
 
 type ManifestArticlePageProps = {
   id: ArticleId;
@@ -17,12 +18,19 @@ export async function ManifestArticlePage({ id }: ManifestArticlePageProps) {
   ]);
 
   return (
-    <LocalizedMarkdownArticle
-      articleClassName={article.articleClassName}
-      enMarkdown={enMarkdown}
-      enTitle={article.articleTitle.en}
-      zhMarkdown={zhMarkdown}
-      zhTitle={article.articleTitle.zh}
-    />
+    <>
+      <LocalizedMarkdownArticle
+        articleClassName={article.articleClassName}
+        enMarkdown={enMarkdown}
+        enTitle={article.articleTitle.en}
+        zhMarkdown={zhMarkdown}
+        zhTitle={article.articleTitle.zh}
+      />
+      <script
+        id="article-structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeStructuredData(getArticleStructuredData(article)) }}
+      />
+    </>
   );
 }

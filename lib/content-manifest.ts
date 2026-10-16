@@ -246,7 +246,11 @@ export function getArticle(id: ArticleId): ArticleContentEntry {
 
 export function getArticleMetadata(id: ArticleId) {
   const entry = getArticle(id);
-  return { title: entry.metadataTitle, description: entry.description };
+  return {
+    title: entry.metadataTitle,
+    description: entry.description,
+    alternates: { canonical: entry.href },
+  };
 }
 
 export function getSearchArticles(): ArticleContentEntry[] {
