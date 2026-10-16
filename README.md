@@ -2,6 +2,10 @@
 
 Agora Research 是一个面向实时互动行业的中英双语研究站点，内容覆盖行业需求、行业供给、声网竞争力以及公开数据。线上文章由 `articles/` 提供，研究草稿和资料保留在 `Research_Report/`、`Resources/`，后两者不会自动进入站点搜索。
 
+研究与维护：[Zhemin Lin（Zhemin）](https://www.zhemin.ltd/)。个人网站收录基本面研究、文章与其他项目。
+
+Research and maintenance by [Zhemin Lin (Zhemin)](https://www.zhemin.ltd/). Visit the personal website for fundamental research, articles, and other projects.
+
 ## 运行时路由
 
 项目使用 Next.js App Router，并启用 trailing slash。当前应用包含 14 条页面路由：
