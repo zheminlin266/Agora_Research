@@ -7,6 +7,7 @@ import { HomePageContent } from "@/components/home-page";
 export const metadata: Metadata = {
   title: "Agora — Key Takeaways | Agora Equity Research",
   description: "Agora's core investment thesis, RTC market dynamics, and competitive position.",
+  alternates: { canonical: "/" },
 };
 
 export default async function HomePage() {

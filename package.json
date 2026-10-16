@@ -8,7 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "python -m unittest discover -s tests -v && npm run test:frontend",
-    "test:frontend": "node --no-warnings --experimental-strip-types tests/test_download_data.mjs && node --no-warnings --experimental-strip-types tests/test_content_manifest.mjs",
+    "test:frontend": "node --no-warnings --experimental-strip-types tests/test_download_data.mjs && node --no-warnings --experimental-strip-types tests/test_content_manifest.mjs && node --no-warnings --experimental-strip-types tests/test_seo.mjs",
     "update:data": "python scripts/update_dashboard_data.py",
     "rebuild:data": "python scripts/update_dashboard_data.py --rebuild",
     "validate:data": "python scripts/validate_dashboard_data.py"
