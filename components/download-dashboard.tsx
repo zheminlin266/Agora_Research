@@ -73,6 +73,8 @@ const copy = {
     title: "RTC开发者项目库下载量",
     intro: "观察公开软件包下载量，理解实时互动产品的开发者采用变化。",
     caveat: "页面汇总 17 个 npm 与 PyPI 包，所有曲线按周聚合，并统一展示到最新完整周。下载量是生态活跃度的近似指标，不等同于客户数或商业收入。",
+    refreshNotice: "2026-10-27 更新：PyPI 源数据已更新至 10 月 19 日当周。npm 官方统计出现多日缺口，本次保留原数据；图表仍统一截至 10 月 5 日当周，以保持比较口径一致。",
+    refreshIssue: "npm 统计故障报告",
     summaryLabel: "数据范围",
     packages: "软件包",
     ecosystems: "生态",
@@ -106,6 +108,8 @@ const copy = {
     title: "RTC Developer Ecosystem",
     intro: "Track public package downloads to understand changes in developer adoption across real-time engagement products.",
     caveat: "The dashboard covers 17 npm and PyPI packages. Every series is aggregated weekly and aligned to the latest complete week. Downloads approximate ecosystem activity; they do not equal customers or revenue.",
+    refreshNotice: "Updated October 27, 2026: PyPI source data now covers the week of October 19. Recent npm statistics have gaps across multiple days, so the previous npm data is retained. Charts remain aligned through the week of October 5 for consistent comparisons.",
+    refreshIssue: "npm statistics issue report",
     summaryLabel: "Data coverage",
     packages: "Packages",
     ecosystems: "Ecosystems",
@@ -368,6 +372,10 @@ export function DownloadDashboard() {
           <div className="summary-item"><span>{text.granularity}</span><strong>{text.week}</strong></div>
           <div className="summary-item"><span>{text.completeThrough}</span><strong>{sharedCompleteWeek ?? "—"}</strong></div>
         </section>
+
+        <p className="load-status">
+          {text.refreshNotice} <a href="https://github.com/orgs/community/discussions/211210">{text.refreshIssue}</a>
+        </p>
 
         <section className="view-options rise delay-2" aria-label={text.rangeLabel}>
           <div><h2>{text.rangeTitle}</h2><p>{text.rangeDescription[range]}</p></div>

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from .dashboard_outputs import load_existing_rows, validate_rows, write_pair_atomic
+from .dashboard_outputs import OutputSafetyError, load_existing_rows, validate_rows, write_pair_atomic
 
 NPM_REGISTRY = "https://registry.npmjs.org"
 NPM_DOWNLOADS = "https://api.npmjs.org/downloads"
@@ -197,8 +197,32 @@ def write_outputs(
 ) -> None:
     columns = ["week_start", *config.packages]
     validate_rows(rows, columns)
+
+    # An incremental merge can retain its final row even when the source date
+    # regresses, so the shared CSV shape checks alone cannot detect a rollback.
+    if config.meta_path.exists():
+        try:
+            previous = json.loads(config.meta_path.read_text(encoding="utf-8"))
+            raw_day = previous.get("source", {}).get("latest_download_day")
+            previous_day = date.fromisoformat(raw_day) if raw_day else None
+        except (OSError, ValueError, TypeError, AttributeError) as exc:
+            raise OutputSafetyError(f"Cannot inspect existing npm source date: {config.meta_path}") from exc
+        if previous_day is not None and latest_day < previous_day:
+            raise OutputSafetyError(
+                f"Refusing to replace {config.csv_path.name}: source date moved backwards "
+                f"from {previous_day.isoformat()} to {latest_day.isoformat()}"
+            )
+    existing_rows = load_existing_rows(config.csv_path, columns)
+    if existing_rows:
+        previous_week = date.fromisoformat(existing_rows[-1]["week_start"])
+        if latest_day < previous_week:
+            raise OutputSafetyError(
+                f"Refusing to replace {config.csv_path.name}: source date {latest_day.isoformat()} "
+                f"precedes the existing latest week {previous_week.isoformat()}"
+            )
+
     csv_buffer = io.StringIO(newline="")
-    writer = csv.DictWriter(csv_buffer, fieldnames=columns)
+    writer = csv.DictWriter(csv_buffer, fieldnames=columns, lineterminator="\n")
     writer.writeheader()
     writer.writerows(rows)
 

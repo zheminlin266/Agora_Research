@@ -277,7 +277,7 @@ def write_outputs(
     columns = ["week_start", *config.packages]
     validate_rows(rows, columns)
     csv_buffer = io.StringIO(newline="")
-    writer = csv.DictWriter(csv_buffer, fieldnames=columns)
+    writer = csv.DictWriter(csv_buffer, fieldnames=columns, lineterminator="\n")
     writer.writeheader()
     writer.writerows(rows)
 

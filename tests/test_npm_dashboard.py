@@ -18,6 +18,7 @@ from lib.npm_dashboard import (
     load_weekly,
     merge_incremental_rows,
     parse_iso_date,
+    run,
     week_start,
     write_outputs,
 )
@@ -132,6 +133,52 @@ class NpmDashboardTests(unittest.TestCase):
             metadata = json.loads(config.meta_path.read_text(encoding="utf-8"))
             self.assertEqual(metadata["dataset"]["rows"], 1)
             self.assertEqual(metadata["dataset"]["columns"], ["week_start", "demo"])
+            self.assertEqual(config.csv_path.read_bytes(), b"week_start,demo\n2024-01-01,7\n")
+
+    def test_source_date_rollback_is_rejected_with_unchanged_row_shape(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = VendorConfig("demo", ["demo"], root / "data.csv", root / "metadata.json")
+            metas = {"demo": PackageMeta(exists=True, created=date(2024, 1, 2))}
+            rows = [{"week_start": "2024-01-01", "demo": "7"}, {"week_start": "2024-01-08", "demo": "9"}]
+            write_outputs(rows, metas, date(2024, 1, 14), config)
+            before = (config.csv_path.read_bytes(), config.meta_path.read_bytes())
+            changed_rows = [dict(row, demo="0") for row in rows]
+            with self.assertRaisesRegex(OutputSafetyError, "source date moved backwards"):
+                write_outputs(changed_rows, metas, date(2024, 1, 12), config)
+            self.assertEqual(before, (config.csv_path.read_bytes(), config.meta_path.read_bytes()))
+
+    def test_source_date_rollback_uses_csv_when_metadata_date_is_unavailable(self):
+        for metadata_text in (None, '{"source": {}}\n'):
+            with self.subTest(metadata=metadata_text), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                config = VendorConfig("demo", ["demo"], root / "data.csv", root / "metadata.json")
+                metas = {"demo": PackageMeta(exists=True, created=date(2024, 1, 2))}
+                rows = [{"week_start": "2024-01-01", "demo": "7"}, {"week_start": "2024-01-08", "demo": "9"}]
+                write_outputs(rows, metas, date(2024, 1, 14), config)
+                if metadata_text is None:
+                    config.meta_path.unlink()
+                else:
+                    config.meta_path.write_text(metadata_text, encoding="utf-8")
+                before = (config.csv_path.read_bytes(), config.meta_path.read_bytes() if config.meta_path.exists() else None)
+                with self.assertRaisesRegex(OutputSafetyError, "precedes the existing latest week"):
+                    write_outputs(rows, metas, date(2024, 1, 7), config)
+                after = (config.csv_path.read_bytes(), config.meta_path.read_bytes() if config.meta_path.exists() else None)
+                self.assertEqual(before, after)
+
+    def test_run_rejects_source_date_rollback_in_incremental_and_rebuild_modes(self):
+        for rebuild in (False, True):
+            with self.subTest(rebuild=rebuild), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                config = VendorConfig("demo", ["demo"], root / "data.csv", root / "metadata.json")
+                meta = PackageMeta(exists=True, created=date(2024, 1, 2))
+                rows = [{"week_start": "2024-01-01", "demo": "7"}, {"week_start": "2024-01-08", "demo": "9"}]
+                write_outputs(rows, {"demo": meta}, date(2024, 1, 14), config)
+                before = (config.csv_path.read_bytes(), config.meta_path.read_bytes())
+                with patch("lib.npm_dashboard.load_package_meta", return_value=meta), patch("lib.npm_dashboard.load_weekly", return_value={}):
+                    with self.assertRaisesRegex(OutputSafetyError, "source date moved backwards"):
+                        run(config, latest_day=date(2024, 1, 12), rebuild=rebuild)
+                self.assertEqual(before, (config.csv_path.read_bytes(), config.meta_path.read_bytes()))
 
     def test_empty_output_is_rejected_without_touching_existing_files(self):
         with tempfile.TemporaryDirectory() as directory:
