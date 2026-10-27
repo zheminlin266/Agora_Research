@@ -46,6 +46,27 @@ Only a confirmed upstream `404` may be interpreted as a missing package. `429`, 
 
 Do not hand-edit production CSVs. If a source changes its schema or coverage, update the builder and its tests first, then regenerate the affected CSV and metadata together.
 
+### npm source incident observed on 2026-10-27
+
+The official npm relative-date endpoints (`last-day`, `last-week`, and
+`last-month`) currently end on 2026-07-01. Explicit recent ranges also contain
+registry-wide zero-download days, including October 19–21. Matching `point`
+and `range` totals therefore do not establish complete weekly coverage. See
+the [upstream issue report](https://github.com/orgs/community/discussions/211210).
+
+Keep the previously published npm files while this source is incomplete. The
+npm writer rejects a source-date rollback even when incremental merging retains
+the old CSV's final row and row count. PyPI can be refreshed independently:
+
+```powershell
+python scripts/update_dashboard_data.py --dataset agoraPypi --dataset livekitPypi
+```
+
+For this refresh, PyPI's complete week advances to 2026-10-19; the dashboard's
+shared cutoff remains 2026-10-05. Remove or replace the dated bilingual notice
+in `components/download-dashboard.tsx` when a later refresh verifies that npm
+has recovered. Do not infer recovery solely from a newer requested range end.
+
 ## Verification
 
 Run the offline validator after every refresh:
