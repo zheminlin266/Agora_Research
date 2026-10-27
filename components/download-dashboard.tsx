@@ -19,7 +19,6 @@ type LoadedDataset = {
   rows: DataRow[];
   registry: string;
   completeWeek: string;
-  sharedCompleteWeek?: string;
 };
 
 const manifestPath = "/data/dev-npm-downloads/manifest.json";
@@ -72,14 +71,12 @@ const copy = {
   zh: {
     title: "RTC开发者项目库下载量",
     intro: "观察公开软件包下载量，理解实时互动产品的开发者采用变化。",
-    caveat: "页面汇总 17 个 npm 与 PyPI 包，所有曲线按周聚合，并统一展示到最新完整周。下载量是生态活跃度的近似指标，不等同于客户数或商业收入。",
-    refreshNotice: "2026-10-27 更新：PyPI 源数据已更新至 10 月 19 日当周。npm 官方统计出现多日缺口，本次保留原数据；图表仍统一截至 10 月 5 日当周，以保持比较口径一致。",
+    caveat: "页面汇总 17 个 npm 与 PyPI 包，曲线按周聚合，各图展示到所属数据集的最新完整周。不同来源的截止日期可能不同，请结合各图标注比较。下载量是生态活跃度的近似指标，不等同于客户数或商业收入。",
+    refreshNotice: "2026-10-27 更新：PyPI 图表已显示至 10 月 19 日当周。npm 官方统计出现多日缺口，本次保留原数据，npm 图表截至 10 月 5 日当周。",
     refreshIssue: "npm 统计故障报告",
     summaryLabel: "数据范围",
     packages: "软件包",
     ecosystems: "生态",
-    granularity: "粒度",
-    week: "周",
     completeThrough: "完整周至",
     rangeTitle: "时间范围",
     rangeLabel: "选择图表时间范围",
@@ -107,14 +104,12 @@ const copy = {
   en: {
     title: "RTC Developer Ecosystem",
     intro: "Track public package downloads to understand changes in developer adoption across real-time engagement products.",
-    caveat: "The dashboard covers 17 npm and PyPI packages. Every series is aggregated weekly and aligned to the latest complete week. Downloads approximate ecosystem activity; they do not equal customers or revenue.",
-    refreshNotice: "Updated October 27, 2026: PyPI source data now covers the week of October 19. Recent npm statistics have gaps across multiple days, so the previous npm data is retained. Charts remain aligned through the week of October 5 for consistent comparisons.",
+    caveat: "The dashboard covers 17 npm and PyPI packages. Each weekly series runs through its dataset's latest complete week. Sources may have different cutoff dates; check each chart's date when comparing. Downloads approximate ecosystem activity; they do not equal customers or revenue.",
+    refreshNotice: "Updated October 27, 2026: PyPI charts now show the week of October 19. Recent npm statistics have gaps across multiple days, so the previous npm data is retained and npm charts end with the week of October 5.",
     refreshIssue: "npm statistics issue report",
     summaryLabel: "Data coverage",
     packages: "Packages",
     ecosystems: "Ecosystems",
-    granularity: "Granularity",
-    week: "Week",
     completeThrough: "Complete through",
     rangeTitle: "Time range",
     rangeLabel: "Select chart time range",
@@ -256,7 +251,7 @@ function PackageChart({ definition, dataset, range, language }: {
   language: Language;
 }) {
   const text = copy[language];
-  const completeRows = dataset?.rows.filter((row) => !dataset.sharedCompleteWeek || row.week_start <= dataset.sharedCompleteWeek) ?? [];
+  const completeRows = dataset?.rows.filter((row) => row.week_start <= dataset.completeWeek) ?? [];
   const rows = visibleRows(completeRows, range);
   const values = completeRows.filter((row) => typeof row[definition.key] === "number");
   const latest = values.at(-1)?.[definition.key];
@@ -273,7 +268,7 @@ function PackageChart({ definition, dataset, range, language }: {
       <div className="package-head">
         <div className="package-name">
           <h3>{definition.label}</h3>
-          <p>{dataset?.registry ?? ""}</p>
+          <p>{dataset ? `${dataset.registry} · ${text.completeThrough} ${dataset.completeWeek}` : ""}</p>
         </div>
         <div className="metric">
           <span>{text.latest}</span>
@@ -329,10 +324,6 @@ export function DownloadDashboard() {
         if (result.status === "fulfilled") next[result.value[0]] = result.value[1];
         else nextErrors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
       });
-      const loadedDatasets = Object.values(next).filter((dataset): dataset is LoadedDataset => Boolean(dataset));
-      const completeWeeks = loadedDatasets.map((dataset) => dataset.completeWeek).filter((value): value is string => Boolean(value)).sort();
-      const sharedCompleteWeek = completeWeeks[0];
-      loadedDatasets.forEach((dataset) => { dataset.sharedCompleteWeek = sharedCompleteWeek; });
       setManifest(dashboardManifest);
       setLoaded(next);
       setErrors(nextErrors);
@@ -349,10 +340,15 @@ export function DownloadDashboard() {
   }, []);
 
   const visiblePackages = manifest ? packageDefinitions(manifest) : [];
-  const sharedCompleteWeek = useMemo(
-    () => Object.values(loaded).find((dataset): dataset is LoadedDataset => Boolean(dataset))?.sharedCompleteWeek,
-    [loaded],
-  );
+  const sourceCompleteWeeks = useMemo(() => {
+    const weeks: Record<string, string> = {};
+    for (const dataset of Object.values(loaded)) {
+      if (!dataset) continue;
+      const previous = weeks[dataset.registry];
+      if (!previous || dataset.completeWeek < previous) weeks[dataset.registry] = dataset.completeWeek;
+    }
+    return weeks;
+  }, [loaded]);
 
   return (
     <>
@@ -369,8 +365,8 @@ export function DownloadDashboard() {
         <section className="summary-strip rise delay-2" aria-label={text.summaryLabel}>
           <div className="summary-item"><span>{text.packages}</span><strong>{visiblePackages.length}</strong></div>
           <div className="summary-item"><span>{text.ecosystems}</span><strong>4</strong></div>
-          <div className="summary-item"><span>{text.granularity}</span><strong>{text.week}</strong></div>
-          <div className="summary-item"><span>{text.completeThrough}</span><strong>{sharedCompleteWeek ?? "—"}</strong></div>
+          <div className="summary-item"><span>npm {text.completeThrough}</span><strong>{sourceCompleteWeeks.npm ?? "—"}</strong></div>
+          <div className="summary-item"><span>PyPI {text.completeThrough}</span><strong>{sourceCompleteWeeks.PyPI ?? "—"}</strong></div>
         </section>
 
         <p className="load-status">
