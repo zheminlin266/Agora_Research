@@ -37,7 +37,8 @@ The updater uses bounded retries for transient responses, file locks for concurr
 - A blank value means the package was not observable before its API coverage or first upload date. It is unknown, not zero.
 - `0` means the package was inside the observed range and the source reported no downloads for that week.
 - Every `week_start` is an ISO Monday. Rows are continuous seven-day intervals.
-- The published complete week is the latest Monday-to-Sunday week available across all six datasets. A trailing partial week may remain in the CSV but must not be used as the dashboard's complete-week cutoff.
+- Each chart and its latest-week metrics use its own dataset's latest complete Monday-to-Sunday week. A delayed source must not truncate another source's charts. A trailing partial week may remain in the CSV but must not appear in charts or latest-week metrics.
+- The overview shows separate npm and PyPI complete-week dates (the earliest complete week within each registry). Each package also displays its dataset's cutoff date so readers can identify different reporting periods.
 - Package columns and metadata columns must match exactly. Values are non-negative integers or blank.
 
 ## Failure policy
@@ -62,8 +63,8 @@ the old CSV's final row and row count. PyPI can be refreshed independently:
 python scripts/update_dashboard_data.py --dataset agoraPypi --dataset livekitPypi
 ```
 
-For this refresh, PyPI's complete week advances to 2026-10-19; the dashboard's
-shared cutoff remains 2026-10-05. Remove or replace the dated bilingual notice
+For this refresh, PyPI charts and latest-week metrics display 2026-10-19;
+npm charts remain at 2026-10-05. Remove or replace the dated bilingual notice
 in `components/download-dashboard.tsx` when a later refresh verifies that npm
 has recovered. Do not infer recovery solely from a newer requested range end.
 
