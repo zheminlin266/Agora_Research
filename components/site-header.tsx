@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
-import agoraLogo from "@/assets/Agora_Logo.png";
+import siteLogo from "@/assets/cat-logo.png";
 import { useSitePreferences } from "@/components/site-preferences";
 import { SiteSearch } from "@/components/site-search";
 import {
@@ -149,7 +149,7 @@ export function SiteHeader() {
       <div className="site-header__inner">
         <a className="site-brand" href="/" aria-label={text.brand}>
           <span className="site-brand__mark">
-            <Image alt="" aria-hidden="true" height={32} priority src={agoraLogo} width={32} />
+            <Image alt="" aria-hidden="true" height={38} priority sizes="38px" src={siteLogo} width={38} />
           </span>
           <span>Agora Equity Research</span>
         </a>

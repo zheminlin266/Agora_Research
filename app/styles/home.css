@@ -292,16 +292,6 @@
     width: calc(100% - 32px);
   }
 
-  .site-brand__mark {
-    width: 30px;
-    height: 30px;
-  }
-
-  .site-brand__mark img {
-    width: 30px;
-    height: 30px;
-  }
-
   .site-nav {
     gap: 8px;
   }
