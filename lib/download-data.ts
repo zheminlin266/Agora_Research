@@ -5,6 +5,19 @@ export type DownloadRow = {
   [column: string]: string | DownloadCell;
 };
 
+export function weeklyComparison(rows: DownloadRow[], key: string, completeWeek: string) {
+  const previousWeek = new Date(`${completeWeek}T00:00:00Z`);
+  previousWeek.setUTCDate(previousWeek.getUTCDate() - 52 * 7);
+  const previousDate = previousWeek.toISOString().slice(0, 10);
+  const latest = rows.find((row) => row.week_start === completeWeek)?.[key];
+  const previous = rows.find((row) => row.week_start === previousDate)?.[key];
+  const latestNumber = typeof latest === "number" ? latest : null;
+  const change = latestNumber !== null && typeof previous === "number" && previous !== 0
+    ? (latestNumber / previous - 1) * 100
+    : null;
+  return { latestNumber, change };
+}
+
 export type ParsedDownloadCsv = {
   rows: DownloadRow[];
   columns: string[];

@@ -1,17 +1,22 @@
 {
-  "generated_at_utc": "2026-10-17T07:20:21.186124+00:00",
+  "generated_at_utc": "2026-11-08T07:06:25.730600+00:00",
   "vendor": "agora",
   "source": {
     "registry": "https://registry.npmjs.org",
     "downloads": "https://api.npmjs.org/downloads",
     "weekly_grain": "Monday-start weeks",
-    "latest_download_day": "2026-10-12",
-    "latest_complete_week_start": "2026-10-05",
+    "latest_download_day": "2026-11-07",
+    "latest_complete_week_start": "2026-10-26",
+    "incomplete_week_starts": [
+      "2026-10-05",
+      "2026-10-12",
+      "2026-10-19"
+    ],
     "caveat": "npm counts include automation, mirrors, caches, and dependency installs."
   },
   "dataset": {
     "csv": "agora_npm_weekly_downloads.csv",
-    "rows": 488,
+    "rows": 491,
     "columns": [
       "week_start",
       "agora-rtc-sdk-ng",
@@ -19,13 +24,13 @@
       "agora-rtc-react",
       "react-native-agora"
     ],
-    "latest_complete_week_start": "2026-10-05"
+    "latest_complete_week_start": "2026-10-26"
   },
   "packages": {
     "agora-rtc-sdk-ng": {
       "exists": true,
       "created": "2020-03-02T11:06:28.278Z",
-      "modified": "2026-10-13T09:41:32.533Z",
+      "modified": "2026-11-02T09:53:18.646Z",
       "latest_version": "4.24.9",
       "description": "Agora WebRTC SDK for JavaScript",
       "error": null

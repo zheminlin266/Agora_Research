@@ -3,7 +3,7 @@ import json
 import tempfile
 import unittest
 import urllib.error
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,6 +14,7 @@ from lib.npm_dashboard import (
     fetch_json,
     iter_ranges,
     latest_complete_week,
+    load_daily,
     load_package_meta,
     load_weekly,
     merge_incremental_rows,
@@ -78,6 +79,49 @@ class NpmDashboardTests(unittest.TestCase):
         downloads = {"demo": {date(2024, 1, 1): 7}}
         rows = build_rows(metas, downloads, date(2024, 1, 14))
         self.assertEqual(rows, [{"week_start": "2024-01-01", "demo": "7"}, {"week_start": "2024-01-08", "demo": "0"}])
+
+    def test_registry_outage_marks_the_whole_week_unknown_but_package_zero_is_valid(self):
+        start = date(2024, 1, 1)
+        days = {start + timedelta(days=index): 100 for index in range(21)}
+        days[date(2024, 1, 9)] = 0
+        package = {day: 0 if day < date(2024, 1, 8) else 5 for day in days}
+        with patch("lib.npm_dashboard.load_daily", side_effect=[days, package]):
+            weekly = load_weekly("demo", start, date(2024, 1, 21), user_agent="test")
+        self.assertEqual(weekly, {start: 0, date(2024, 1, 8): None, date(2024, 1, 15): 35})
+        metas = {"demo": PackageMeta(exists=True, created=start)}
+        rows = build_rows(metas, {"demo": weekly}, date(2024, 1, 21))
+        self.assertEqual([row["demo"] for row in rows], ["0", "", "35"])
+        merged = merge_incremental_rows(rows[:2], metas, {"demo": weekly}, date(2024, 1, 21), {"demo": start}, {"demo": start})
+        self.assertEqual(merged, rows)
+
+    def test_daily_range_rejects_missing_duplicate_and_invalid_counts(self):
+        good = [{"day": "2024-01-01", "downloads": 0}, {"day": "2024-01-02", "downloads": 3}]
+        for downloads in ([], good[:1], [good[0], good[0]], [good[0], {"day": "2024-01-02", "downloads": -1}]):
+            with self.subTest(downloads=downloads), patch("lib.npm_dashboard.fetch_json", return_value={"start": "2024-01-01", "end": "2024-01-02", "package": "demo", "downloads": downloads}):
+                with self.assertRaises(OutputSafetyError):
+                    load_daily("demo", date(2024, 1, 1), date(2024, 1, 2), user_agent="test")
+
+    def test_latest_complete_week_excludes_registry_gaps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = VendorConfig("demo", ["demo"], root / "data.csv", root / "metadata.json")
+            rows = [{"week_start": "2024-01-01", "demo": "7"}, {"week_start": "2024-01-08", "demo": ""}]
+            write_outputs(rows, {"demo": PackageMeta(exists=True, created=date(2024, 1, 1))}, date(2024, 1, 14), config)
+            source = json.loads(config.meta_path.read_text())["source"]
+            self.assertEqual(source["latest_complete_week_start"], "2024-01-01")
+            self.assertEqual(source["incomplete_week_starts"], ["2024-01-08"])
+
+    def test_new_source_date_cannot_hide_a_complete_week_rollback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = VendorConfig("demo", ["demo"], root / "data.csv", root / "metadata.json")
+            metas = {"demo": PackageMeta(exists=True, created=date(2024, 1, 1))}
+            rows = [{"week_start": "2024-01-01", "demo": "7"}, {"week_start": "2024-01-08", "demo": "9"}]
+            write_outputs(rows, metas, date(2024, 1, 14), config)
+            before = (config.csv_path.read_bytes(), config.meta_path.read_bytes())
+            with self.assertRaisesRegex(OutputSafetyError, "latest complete npm week backwards"):
+                write_outputs([rows[0], {"week_start": "2024-01-08", "demo": ""}, {"week_start": "2024-01-15", "demo": ""}], metas, date(2024, 1, 21), config)
+            self.assertEqual(before, (config.csv_path.read_bytes(), config.meta_path.read_bytes()))
 
     def test_unknown_history_before_api_coverage_is_blank(self):
         metas = {"legacy": PackageMeta(exists=True, created=date(2011, 1, 1), created_raw="2011-01-01T00:00:00Z")}

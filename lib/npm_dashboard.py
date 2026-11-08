@@ -113,22 +113,47 @@ def latest_download_day(*, user_agent: str) -> date:
     return min(date.fromisoformat(payload["end"]), datetime.now(timezone.utc).date() - timedelta(days=1))
 
 
-def load_weekly(package: str, start: date, end: date, *, user_agent: str) -> dict[date, int]:
-    weekly: dict[date, int] = {}
-    encoded = urllib.parse.quote(package, safe="")
+def load_daily(package: str | None, start: date, end: date, *, user_agent: str) -> dict[date, int]:
+    """Require every requested day; an absent day is not a zero-download day."""
+    daily: dict[date, int] = {}
+    suffix = f"/{urllib.parse.quote(package, safe='')}" if package else ""
     for chunk_start, chunk_end in iter_ranges(start, end):
         period = f"{chunk_start.isoformat()}:{chunk_end.isoformat()}"
-        payload = fetch_json(f"{NPM_DOWNLOADS}/range/{period}/{encoded}", user_agent=user_agent)
-        time.sleep(0.25)
+        payload = fetch_json(f"{NPM_DOWNLOADS}/range/{period}{suffix}", user_agent=user_agent)
+        if payload.get("start") != chunk_start.isoformat() or payload.get("end") != chunk_end.isoformat():
+            raise OutputSafetyError("npm returned an unexpected download range")
+        if package and payload.get("package") != package:
+            raise OutputSafetyError("npm returned an unexpected package")
+        chunk: dict[date, int] = {}
         for row in payload.get("downloads", []):
-            monday = week_start(date.fromisoformat(row["day"]))
-            weekly[monday] = weekly.get(monday, 0) + int(row.get("downloads", 0))
+            day = date.fromisoformat(row["day"])
+            count = row.get("downloads")
+            if day in chunk or not chunk_start <= day <= chunk_end or type(count) is not int or count < 0:
+                raise OutputSafetyError("npm returned invalid daily downloads")
+            chunk[day] = count
+        if len(chunk) != (chunk_end - chunk_start).days + 1:
+            raise OutputSafetyError("npm returned incomplete daily downloads")
+        daily.update(chunk)
+        time.sleep(0.25)
+    return daily
+
+
+def load_weekly(package: str, start: date, end: date, *, user_agent: str) -> dict[date, int | None]:
+    # A registry-wide zero is an upstream outage, even when the package API also
+    # returns zero. Preserve the week as unknown rather than publishing a dip.
+    registry = load_daily(None, start, end, user_agent=user_agent)
+    daily = load_daily(package, start, end, user_agent=user_agent)
+    weekly: dict[date, int | None] = {}
+    for day, count in daily.items():
+        monday = week_start(day)
+        total = weekly.get(monday, 0)
+        weekly[monday] = None if registry[day] == 0 or total is None else total + count
     return weekly
 
 
 def build_rows(
     metas: dict[str, PackageMeta],
-    downloads: dict[str, dict[date, int]],
+    downloads: dict[str, dict[date, int | None]],
     latest_day: date,
     coverage_starts: dict[str, date] | None = None,
 ) -> list[dict[str, str]]:
@@ -145,7 +170,7 @@ def build_rows(
             coverage_week = max(start, week_start(coverage_start)) if start and coverage_start else start
             row[package] = (
                 ""
-                if coverage_week is None or current < coverage_week
+                if coverage_week is None or current < coverage_week or downloads[package].get(current, 0) is None
                 else str(downloads[package].get(current, 0))
             )
         rows.append(row)
@@ -156,7 +181,7 @@ def build_rows(
 def merge_incremental_rows(
     existing_rows: list[dict[str, str]],
     metas: dict[str, PackageMeta],
-    downloads: dict[str, dict[date, int]],
+    downloads: dict[str, dict[date, int | None]],
     latest_day: date,
     coverage_starts: dict[str, date],
     fetch_starts: dict[str, date],
@@ -172,7 +197,7 @@ def merge_incremental_rows(
             if refresh_week is not None and current >= refresh_week:
                 row[package] = (
                     ""
-                    if coverage_week is None or current < coverage_week
+                    if coverage_week is None or current < coverage_week or downloads[package].get(current, 0) is None
                     else str(downloads[package].get(current, 0))
                 )
 
@@ -184,7 +209,7 @@ def merge_incremental_rows(
             coverage_week = week_start(coverage_starts[package]) if package in coverage_starts else None
             row[package] = (
                 ""
-                if coverage_week is None or current < coverage_week
+                if coverage_week is None or current < coverage_week or downloads[package].get(current, 0) is None
                 else str(downloads[package].get(current, 0))
             )
         rows.append(row)
@@ -226,7 +251,26 @@ def write_outputs(
     writer.writeheader()
     writer.writerows(rows)
 
-    complete_week = latest_complete_week(latest_day).isoformat()
+    incomplete_weeks = [
+        row["week_start"] for row in rows
+        if any(
+            meta.exists and meta.created is not None
+            and date.fromisoformat(row["week_start"]) >= week_start(max(meta.created, EARLIEST_DOWNLOAD_DATE))
+            and row[package] == ""
+            for package, meta in metas.items()
+        )
+    ]
+    calendar_complete = latest_complete_week(latest_day).isoformat()
+    complete_week = next((
+        row["week_start"] for row in reversed(rows)
+        if row["week_start"] <= calendar_complete and row["week_start"] not in incomplete_weeks
+    ), None)
+    if complete_week is None:
+        raise OutputSafetyError("npm returned no complete week without source gaps")
+    if config.meta_path.exists():
+        previous_complete = json.loads(config.meta_path.read_text(encoding="utf-8")).get("source", {}).get("latest_complete_week_start")
+        if previous_complete and complete_week < previous_complete:
+            raise OutputSafetyError("Refusing to move the latest complete npm week backwards")
     metadata = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "vendor": config.vendor,
@@ -236,6 +280,7 @@ def write_outputs(
             "weekly_grain": "Monday-start weeks",
             "latest_download_day": latest_day.isoformat(),
             "latest_complete_week_start": complete_week,
+            "incomplete_week_starts": incomplete_weeks,
             "caveat": "npm counts include automation, mirrors, caches, and dependency installs.",
         },
         "dataset": {
@@ -278,7 +323,7 @@ def run(
     latest_day = latest_day or latest_download_day(user_agent=config.user_agent)
     columns = ["week_start", *config.packages]
     existing_rows = [] if rebuild else load_existing_rows(config.csv_path, columns)
-    downloads: dict[str, dict[date, int]] = {}
+    downloads: dict[str, dict[date, int | None]] = {}
     coverage_starts: dict[str, date] = {}
     fetch_starts: dict[str, date] = {}
     for package, meta in metas.items():

@@ -34,7 +34,7 @@ The updater uses bounded retries for transient responses, file locks for concurr
 
 ## Value semantics
 
-- A blank value means the package was not observable before its API coverage or first upload date. It is unknown, not zero.
+- A blank value means the package was not observable before its API coverage or first upload date, or the upstream registry has missing statistics for that week. It is unknown, not zero. Charts preserve the time interval and break the line at missing weeks.
 - `0` means the package was inside the observed range and the source reported no downloads for that week.
 - Every `week_start` is an ISO Monday. Rows are continuous seven-day intervals.
 - Each chart and its latest-week metrics use its own dataset's latest complete Monday-to-Sunday week. A delayed source must not truncate another source's charts. A trailing partial week may remain in the CSV but must not appear in charts or latest-week metrics.
@@ -47,26 +47,30 @@ Only a confirmed upstream `404` may be interpreted as a missing package. `429`, 
 
 Do not hand-edit production CSVs. If a source changes its schema or coverage, update the builder and its tests first, then regenerate the affected CSV and metadata together.
 
-### npm source incident observed on 2026-10-27
+### npm source incident and recovery checked on 2026-11-08
 
-The official npm relative-date endpoints (`last-day`, `last-week`, and
-`last-month`) currently end on 2026-07-01. Explicit recent ranges also contain
-registry-wide zero-download days, including October 19–21. Matching `point`
-and `range` totals therefore do not establish complete weekly coverage. See
+The npm `last-day` endpoint now ends on 2026-11-07. Registry-wide daily
+statistics still report zero downloads on October 6, 14–15, and 19–21. See
 the [upstream issue report](https://github.com/orgs/community/discussions/211210).
+Matching package `point` and `range` totals do not establish complete coverage.
 
-Keep the previously published npm files while this source is incomplete. The
-npm writer rejects a source-date rollback even when incremental merging retains
-the old CSV's final row and row count. PyPI can be refreshed independently:
+The builder now validates daily range boundaries, dates, counts, and package
+identity, and requires every requested day. It checks registry-wide totals
+alongside package downloads. A registry-wide zero marks the entire affected
+week as unknown; legitimate package zeros remain zero. Missing weeks are
+recorded in `source.incomplete_week_starts`, retained as blank CSV cells,
+and rendered as line breaks. A later week with complete statistics can be
+published without treating the intervening outage as a fall in adoption.
+The latest complete-week cutoff cannot fall within a missing week or move
+backwards. Source-date rollback protection remains in place.
 
-```powershell
-python scripts/update_dashboard_data.py --dataset agoraPypi --dataset livekitPypi
-```
-
-For this refresh, PyPI charts and latest-week metrics display 2026-10-19;
-npm charts remain at 2026-10-05. Remove or replace the dated bilingual notice
-in `components/download-dashboard.tsx` when a later refresh verifies that npm
-has recovered. Do not infer recovery solely from a newer requested range end.
+All six datasets were refreshed through November 7. Charts and latest-week
+metrics show the complete week of October 26–November 1; the November 2
+partial week remains in the CSV. npm weeks starting October 5, 12, and 19
+are unknown, including the previously published October 5 total now confirmed
+to contain a missing day. Earlier history before the overlap is preserved.
+Year-over-year comparisons use the week exactly 52 weeks earlier, preserving
+the calendar relationship across missing observations.
 
 ## Verification
 
