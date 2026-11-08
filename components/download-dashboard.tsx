@@ -73,7 +73,7 @@ const copy = {
     title: "RTC开发者项目库下载量",
     intro: "观察公开软件包下载量，理解实时互动产品的开发者采用变化。",
     caveat: "页面汇总 17 个 npm 与 PyPI 包，曲线按周聚合，各图展示到所属数据集的最新完整周。不同来源的截止日期可能不同，请结合各图标注比较。下载量是生态活跃度的近似指标，不等同于客户数或商业收入。",
-    refreshNotice: "2026-11-08 更新：npm 与 PyPI 图表均已更新至 10 月 26 日—11 月 1 日完整周。npm 官方统计在 10 月 5 日、12 日、19 日三周存在缺口，图中以断线表示，不计为零下载量。",
+    refreshNotice: "2026-11-08 更新：npm 与 PyPI 图表均已更新至 10 月 26 日—11 月 1 日完整周。npm 官方统计在 10 月 5 日、12 日、19 日三周存在缺口，缺失区间用虚线连接；虚线不代表实际周下载量。",
     refreshIssue: "npm 统计故障报告",
     summaryLabel: "数据范围",
     packages: "软件包",
@@ -106,7 +106,7 @@ const copy = {
     title: "RTC Developer Ecosystem",
     intro: "Track public package downloads to understand changes in developer adoption across real-time engagement products.",
     caveat: "The dashboard covers 17 npm and PyPI packages. Each weekly series runs through its dataset's latest complete week. Sources may have different cutoff dates; check each chart's date when comparing. Downloads approximate ecosystem activity; they do not equal customers or revenue.",
-    refreshNotice: "Updated November 8, 2026: npm and PyPI charts now show the complete week of October 26–November 1. Official npm statistics have gaps in the weeks of October 5, 12, and 19; these appear as breaks in the charts, not zero downloads.",
+    refreshNotice: "Updated November 8, 2026: npm and PyPI charts now show the complete week of October 26–November 1. Official npm statistics have gaps in the weeks of October 5, 12, and 19. Dashed lines connect observations across these gaps and do not represent actual weekly downloads.",
     refreshIssue: "npm statistics issue report",
     summaryLabel: "Data coverage",
     packages: "Packages",
@@ -187,13 +187,18 @@ function DownloadChart({ rows, dataKey, label, language, empty, downloads }: {
   const x = (index: number) => series.length === 1 ? left + plotWidth / 2 : left + index * plotWidth / (series.length - 1);
   const y = (value: number) => top + plotHeight - value * plotHeight / yMax;
   let connected = false;
+  let previousPoint: string | null = null;
+  const gapPaths: string[] = [];
   const path = series.map((row, index) => {
     const value = row[dataKey];
     if (typeof value !== "number") {
       connected = false;
       return "";
     }
-    const command = `${connected ? "L" : "M"}${x(index)},${y(value)}`;
+    const point = `${x(index)},${y(value)}`;
+    if (!connected && previousPoint !== null) gapPaths.push(`M${previousPoint} L${point}`);
+    const command = `${connected ? "L" : "M"}${point}`;
+    previousPoint = point;
     connected = true;
     return command;
   }).join(" ");
@@ -236,6 +241,7 @@ function DownloadChart({ rows, dataKey, label, language, empty, downloads }: {
           </text>
         ))}
         <line x1={left} x2={width - right} y1={top + plotHeight} y2={top + plotHeight} className="chart-axis" />
+        {gapPaths.length ? <path d={gapPaths.join(" ")} className="chart-gap" aria-hidden="true" /> : null}
         <path d={path} className="chart-line" />
         <circle cx={x(series.length - 1)} cy={y(values.at(-1) ?? 0)} r="3.5" className="chart-endpoint" />
         {hovered && hoverIndex !== null ? (
@@ -246,6 +252,7 @@ function DownloadChart({ rows, dataKey, label, language, empty, downloads }: {
         ) : null}
         <rect x={left} y={top} width={plotWidth} height={plotHeight} className="chart-hit" onPointerMove={handlePointerMove} onPointerLeave={() => setHoverIndex(null)} />
       </svg>
+      {gapPaths.length ? <p className="chart-gap-note">{language === "zh" ? "虚线连接区间缺少周度数据" : "Dashed connection: weekly data unavailable."}</p> : null}
       {hovered && hoverIndex !== null ? (
         <div
           className="chart-tooltip is-visible"
