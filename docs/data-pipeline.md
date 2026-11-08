@@ -34,7 +34,7 @@ The updater uses bounded retries for transient responses, file locks for concurr
 
 ## Value semantics
 
-- A blank value means the package was not observable before its API coverage or first upload date, or the upstream registry has missing statistics for that week. It is unknown, not zero. Charts preserve the time interval and break the line at missing weeks.
+- A blank value means the package was not observable before its API coverage or first upload date, or the upstream registry has missing statistics for that week. It is unknown, not zero. Charts preserve the time interval and use a labeled dashed connector between observations across missing weeks; solid lines only connect adjacent observed weeks.
 - `0` means the package was inside the observed range and the source reported no downloads for that week.
 - Every `week_start` is an ISO Monday. Rows are continuous seven-day intervals.
 - Each chart and its latest-week metrics use its own dataset's latest complete Monday-to-Sunday week. A delayed source must not truncate another source's charts. A trailing partial week may remain in the CSV but must not appear in charts or latest-week metrics.
@@ -59,7 +59,9 @@ identity, and requires every requested day. It checks registry-wide totals
 alongside package downloads. A registry-wide zero marks the entire affected
 week as unknown; legitimate package zeros remain zero. Missing weeks are
 recorded in `source.incomplete_week_starts`, retained as blank CSV cells,
-and rendered as line breaks. A later week with complete statistics can be
+and rendered as gaps in the solid line with a dashed connector and a missing-data
+caption. The connector does not impute weekly values; missing-week tooltips
+continue to show unavailable data. A later week with complete statistics can be
 published without treating the intervening outage as a fall in adoption.
 The latest complete-week cutoff cannot fall within a missing week or move
 backwards. Source-date rollback protection remains in place.
