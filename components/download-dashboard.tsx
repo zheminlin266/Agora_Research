@@ -7,6 +7,7 @@ import { useSitePreferences, type Language } from "@/components/site-preferences
 import {
   parseDashboardManifest,
   parseDownloadDataset,
+  weeklyComparison,
   type DashboardManifest,
   type DownloadRow,
 } from "@/lib/download-data";
@@ -72,7 +73,7 @@ const copy = {
     title: "RTC开发者项目库下载量",
     intro: "观察公开软件包下载量，理解实时互动产品的开发者采用变化。",
     caveat: "页面汇总 17 个 npm 与 PyPI 包，曲线按周聚合，各图展示到所属数据集的最新完整周。不同来源的截止日期可能不同，请结合各图标注比较。下载量是生态活跃度的近似指标，不等同于客户数或商业收入。",
-    refreshNotice: "2026-10-27 更新：PyPI 图表已显示至 10 月 19 日当周。npm 官方统计出现多日缺口，本次保留原数据，npm 图表截至 10 月 5 日当周。",
+    refreshNotice: "2026-11-08 更新：npm 与 PyPI 图表均已更新至 10 月 26 日—11 月 1 日完整周。npm 官方统计在 10 月 5 日、12 日、19 日三周存在缺口，图中以断线表示，不计为零下载量。",
     refreshIssue: "npm 统计故障报告",
     summaryLabel: "数据范围",
     packages: "软件包",
@@ -105,7 +106,7 @@ const copy = {
     title: "RTC Developer Ecosystem",
     intro: "Track public package downloads to understand changes in developer adoption across real-time engagement products.",
     caveat: "The dashboard covers 17 npm and PyPI packages. Each weekly series runs through its dataset's latest complete week. Sources may have different cutoff dates; check each chart's date when comparing. Downloads approximate ecosystem activity; they do not equal customers or revenue.",
-    refreshNotice: "Updated October 27, 2026: PyPI charts now show the week of October 19. Recent npm statistics have gaps across multiple days, so the previous npm data is retained and npm charts end with the week of October 5.",
+    refreshNotice: "Updated November 8, 2026: npm and PyPI charts now show the complete week of October 26–November 1. Official npm statistics have gaps in the weeks of October 5, 12, and 19; these appear as breaks in the charts, not zero downloads.",
     refreshIssue: "npm statistics issue report",
     summaryLabel: "Data coverage",
     packages: "Packages",
@@ -166,9 +167,12 @@ function DownloadChart({ rows, dataKey, label, language, empty, downloads }: {
   downloads: string;
 }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const series = rows.filter((row) => typeof row[dataKey] === "number" && Number.isFinite(row[dataKey])) as Array<DataRow & Record<string, number>>;
-
-  if (!series.length) return <p className="chart-empty">{empty}</p>;
+  const isObserved = (row: DataRow) => typeof row[dataKey] === "number" && Number.isFinite(row[dataKey]);
+  const firstIndex = rows.findIndex(isObserved);
+  if (firstIndex < 0) return <p className="chart-empty">{empty}</p>;
+  let lastIndex = rows.length - 1;
+  while (!isObserved(rows[lastIndex])) lastIndex -= 1;
+  const series = rows.slice(firstIndex, lastIndex + 1);
 
   const width = 720;
   const height = 220;
@@ -178,16 +182,27 @@ function DownloadChart({ rows, dataKey, label, language, empty, downloads }: {
   const bottom = 32;
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
-  const values = series.map((row) => row[dataKey]);
+  const values = series.map((row) => row[dataKey]).filter((value): value is number => typeof value === "number");
   const yMax = niceMax(Math.max(...values));
   const x = (index: number) => series.length === 1 ? left + plotWidth / 2 : left + index * plotWidth / (series.length - 1);
   const y = (value: number) => top + plotHeight - value * plotHeight / yMax;
-  const points = series.map((row, index) => `${x(index)},${y(row[dataKey])}`).join(" ");
+  let connected = false;
+  const path = series.map((row, index) => {
+    const value = row[dataKey];
+    if (typeof value !== "number") {
+      connected = false;
+      return "";
+    }
+    const command = `${connected ? "L" : "M"}${x(index)},${y(value)}`;
+    connected = true;
+    return command;
+  }).join(" ");
   const labelIndexes = [...new Set([0, Math.floor((series.length - 1) / 2), series.length - 1])];
   const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
   const exact = new Intl.NumberFormat("en-US");
   const dateLabel = new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "short", timeZone: "UTC" });
   const hovered = hoverIndex === null ? null : series[hoverIndex];
+  const hoveredValue = hovered?.[dataKey];
 
   function handlePointerMove(event: PointerEvent<SVGRectElement>) {
     const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
@@ -221,12 +236,12 @@ function DownloadChart({ rows, dataKey, label, language, empty, downloads }: {
           </text>
         ))}
         <line x1={left} x2={width - right} y1={top + plotHeight} y2={top + plotHeight} className="chart-axis" />
-        <polyline points={points} className="chart-line" />
+        <path d={path} className="chart-line" />
         <circle cx={x(series.length - 1)} cy={y(values.at(-1) ?? 0)} r="3.5" className="chart-endpoint" />
         {hovered && hoverIndex !== null ? (
           <>
             <line x1={x(hoverIndex)} x2={x(hoverIndex)} y1={top} y2={top + plotHeight} className="chart-guide is-visible" />
-            <circle cx={x(hoverIndex)} cy={y(hovered[dataKey])} r="4" className="chart-hover-point is-visible" />
+            {typeof hoveredValue === "number" ? <circle cx={x(hoverIndex)} cy={y(hoveredValue)} r="4" className="chart-hover-point is-visible" /> : null}
           </>
         ) : null}
         <rect x={left} y={top} width={plotWidth} height={plotHeight} className="chart-hit" onPointerMove={handlePointerMove} onPointerLeave={() => setHoverIndex(null)} />
@@ -234,10 +249,10 @@ function DownloadChart({ rows, dataKey, label, language, empty, downloads }: {
       {hovered && hoverIndex !== null ? (
         <div
           className="chart-tooltip is-visible"
-          style={{ left: `${x(hoverIndex) / width * 100}%`, top: `${y(hovered[dataKey]) / height * 100}%` }}
+          style={{ left: `${x(hoverIndex) / width * 100}%`, top: `${(typeof hoveredValue === "number" ? y(hoveredValue) : top) / height * 100}%` }}
         >
           <strong>{hovered.week_start}</strong>
-          <span>{exact.format(hovered[dataKey])} {downloads}</span>
+          <span>{typeof hoveredValue === "number" ? `${exact.format(hoveredValue)} ${downloads}` : language === "zh" ? "数据缺失" : "Missing data"}</span>
         </div>
       ) : null}
     </div>
@@ -253,14 +268,9 @@ function PackageChart({ definition, dataset, range, language }: {
   const text = copy[language];
   const completeRows = dataset?.rows.filter((row) => row.week_start <= dataset.completeWeek) ?? [];
   const rows = visibleRows(completeRows, range);
-  const values = completeRows.filter((row) => typeof row[definition.key] === "number");
-  const latest = values.at(-1)?.[definition.key];
-  const previous = values.at(-53)?.[definition.key];
-  const latestNumber = typeof latest === "number" ? latest : null;
-  const previousNumber = typeof previous === "number" ? previous : null;
-  const change = latestNumber !== null && previousNumber !== null && previousNumber !== 0
-    ? (latestNumber / previousNumber - 1) * 100
-    : null;
+  const { latestNumber, change } = dataset
+    ? weeklyComparison(completeRows, definition.key, dataset.completeWeek)
+    : { latestNumber: null, change: null };
   const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 
   return (

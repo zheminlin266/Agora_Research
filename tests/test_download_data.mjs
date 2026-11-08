@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 
-import { DownloadDataError, parseDashboardManifest, parseDownloadDataset } from "../lib/download-data.ts";
+import { DownloadDataError, parseDashboardManifest, parseDownloadDataset, weeklyComparison } from "../lib/download-data.ts";
+
+const comparisonRows = Array.from({ length: 53 }, (_, index) => ({
+  week_start: new Date(Date.UTC(2025, 9, 27 + index * 7)).toISOString().slice(0, 10),
+  demo: index === 50 || index === 51 ? null : index === 0 ? 100 : 200,
+}));
+assert.deepEqual(weeklyComparison(comparisonRows, "demo", "2026-10-26"), { latestNumber: 200, change: 100 });
+assert.deepEqual(weeklyComparison(comparisonRows, "demo", "2026-10-19"), { latestNumber: null, change: null });
 
 const csv = [
   "week_start,alpha,beta",

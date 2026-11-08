@@ -1,23 +1,28 @@
 {
-  "generated_at_utc": "2026-10-17T07:20:44.539495+00:00",
+  "generated_at_utc": "2026-11-08T07:06:33.025139+00:00",
   "vendor": "twilio",
   "source": {
     "registry": "https://registry.npmjs.org",
     "downloads": "https://api.npmjs.org/downloads",
     "weekly_grain": "Monday-start weeks",
-    "latest_download_day": "2026-10-12",
-    "latest_complete_week_start": "2026-10-05",
+    "latest_download_day": "2026-11-07",
+    "latest_complete_week_start": "2026-10-26",
+    "incomplete_week_starts": [
+      "2026-10-05",
+      "2026-10-12",
+      "2026-10-19"
+    ],
     "caveat": "npm counts include automation, mirrors, caches, and dependency installs."
   },
   "dataset": {
     "csv": "twilio_npm_weekly_downloads.csv",
-    "rows": 815,
+    "rows": 818,
     "columns": [
       "week_start",
       "@twilio/voice-sdk",
       "twilio"
     ],
-    "latest_complete_week_start": "2026-10-05"
+    "latest_complete_week_start": "2026-10-26"
   },
   "packages": {
     "@twilio/voice-sdk": {
@@ -31,8 +36,8 @@
     "twilio": {
       "exists": true,
       "created": "2011-03-08T00:34:18.576Z",
-      "modified": "2026-10-12T16:12:20.452Z",
-      "latest_version": "6.2.0",
+      "modified": "2026-11-06T04:03:44.888Z",
+      "latest_version": "6.3.0",
       "description": "A Twilio helper library",
       "error": null
     }
