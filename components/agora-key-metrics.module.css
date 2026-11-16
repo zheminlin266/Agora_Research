@@ -10,6 +10,34 @@
   letter-spacing: -0.035em;
 }
 
+.metricsScope :global(.metrics-release-meta),
+.metricsScope :global(.metrics-business-summary),
+.metricsScope :global(.metrics-notes) {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.metricsScope :global(.metrics-release-meta) {
+  margin-top: 12px;
+}
+
+.metricsScope :global(.metrics-release-meta a) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.metricsScope :global(.metrics-business-summary) {
+  margin-top: 6px;
+}
+
+.metricsScope :global(.metrics-notes) {
+  margin-top: 20px;
+}
+
+.metricsScope :global(.metrics-notes p + p) {
+  margin-top: 8px;
+}
+
 .metricsScope :global(.metrics-table-frame) {
   width: min(1200px, calc(100vw - 44px));
   max-height: calc(100svh - 120px);
@@ -96,13 +124,19 @@
   background: var(--hover);
 }
 
+.metricsScope :global(.metrics-table tbody .metrics-table__latest td) {
+  background: var(--hover);
+  font-weight: 600;
+}
+
 @media (max-width: 820px) {
   .metricsScope:global(.metrics-page) {
     max-width: none;
     padding: 132px 0 40px;
   }
 
-  .metricsScope :global(.metrics-header) {
+  .metricsScope :global(.metrics-header),
+  .metricsScope :global(.metrics-notes) {
     padding-inline: 20px;
   }
 
