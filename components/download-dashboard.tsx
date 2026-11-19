@@ -73,7 +73,7 @@ const copy = {
     title: "RTC开发者项目库下载量",
     intro: "观察公开软件包下载量，理解实时互动产品的开发者采用变化。",
     caveat: "页面汇总 17 个 npm 与 PyPI 包，曲线按周聚合，各图展示到所属数据集的最新完整周。不同来源的截止日期可能不同，请结合各图标注比较。下载量是生态活跃度的近似指标，不等同于客户数或商业收入。",
-    refreshNotice: "2026-11-08 更新：npm 与 PyPI 图表均已更新至 10 月 26 日—11 月 1 日完整周。npm 官方统计在 10 月 5 日、12 日、19 日三周存在缺口，缺失区间用虚线连接；虚线不代表实际周下载量。",
+    npmGapNotice: "npm 官方下载统计在 2026 年 10 月出现缺口。虚线连接缺口两侧有数据的周。",
     refreshIssue: "npm 统计故障报告",
     summaryLabel: "数据范围",
     packages: "软件包",
@@ -106,7 +106,7 @@ const copy = {
     title: "RTC Developer Ecosystem",
     intro: "Track public package downloads to understand changes in developer adoption across real-time engagement products.",
     caveat: "The dashboard covers 17 npm and PyPI packages. Each weekly series runs through its dataset's latest complete week. Sources may have different cutoff dates; check each chart's date when comparing. Downloads approximate ecosystem activity; they do not equal customers or revenue.",
-    refreshNotice: "Updated November 8, 2026: npm and PyPI charts now show the complete week of October 26–November 1. Official npm statistics have gaps in the weeks of October 5, 12, and 19. Dashed lines connect observations across these gaps and do not represent actual weekly downloads.",
+    npmGapNotice: "Official npm download statistics had gaps in October 2026. Dashed lines connect weeks with data on either side of a gap.",
     refreshIssue: "npm statistics issue report",
     summaryLabel: "Data coverage",
     packages: "Packages",
@@ -387,7 +387,7 @@ export function DownloadDashboard() {
         </section>
 
         <p className="load-status">
-          {text.refreshNotice} <a href="https://github.com/orgs/community/discussions/211210">{text.refreshIssue}</a>
+          {text.npmGapNotice} <a href="https://github.com/orgs/community/discussions/211210">{text.refreshIssue}</a>
         </p>
 
         <section className="view-options rise delay-2" aria-label={text.rangeLabel}>
